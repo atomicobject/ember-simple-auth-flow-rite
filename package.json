@@ -1,0 +1,77 @@
+{
+  "name": "ember-simple-auth",
+  "version": "1.0.0",
+  "description": "A lightweight library for implementing authentication/authorization with Ember.js applications.",
+  "directories": {
+    "doc": "doc",
+    "test": "tests"
+  },
+  "scripts": {
+    "start": "ember server",
+    "build": "ember build",
+    "docs": "ember build --docs",
+    "test": "ember try:testall"
+  },
+  "repository": "",
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "author": {
+    "name": "Marco Otte-Witte"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "body-parser": "^1.2.0",
+    "broccoli-asset-rev": "^2.0.2",
+    "broccoli-handlebars": "0.0.6",
+    "broccoli-merge-trees": "^0.2.2",
+    "ember-browserify": "1.0.2",
+    "ember-cli": "1.13.7",
+    "ember-cli-app-version": "0.4.0",
+    "ember-cli-base64": "0.0.1",
+    "ember-cli-content-security-policy": "0.4.0",
+    "ember-cli-dependency-checker": "^1.0.0",
+    "ember-cli-htmlbars": "0.7.9",
+    "ember-cli-htmlbars-inline-precompile": "^0.1.1",
+    "ember-cli-ic-ajax": "0.2.1",
+    "ember-cli-inject-live-reload": "^1.3.0",
+    "ember-cli-mocha": "0.9.2",
+    "ember-cli-release": "0.2.3",
+    "ember-cli-sri": "^1.0.1",
+    "ember-cli-uglify": "^1.0.1",
+    "ember-cli-yuidoc": "0.7.3",
+    "ember-data": "1.13.7",
+    "ember-disable-prototype-extensions": "^1.0.0",
+    "ember-disable-proxy-controllers": "^1.0.0",
+    "ember-export-application-global": "^1.0.3",
+    "ember-sinon": "0.2.1",
+    "ember-suave": "0.1.12",
+    "ember-try": "0.0.8",
+    "express": "^4.8.5",
+    "glob": "^4.0.5",
+    "handlebars": "3.0.3",
+    "lodash": "^3.10.0",
+    "marked": "^0.3.5",
+    "morgan": "^1.3.2",
+    "sinon-chai": "2.8.0"
+  },
+  "keywords": [
+    "ember-addon",
+    "authentication",
+    "authorization"
+  ],
+  "dependencies": {
+    "ember-cli-babel": "^5.0.0",
+    "torii": "^0.5.1"
+  },
+  "ember-addon": {
+    "configPath": "tests/dummy/config"
+  },
+  "gitHead": "49b1b3fe7ee62c827a98e012a5a3966e77c64352",
+  "readme": "[![Build Status](https://travis-ci.org/simplabs/ember-simple-auth.svg?branch=master)](https://travis-ci.org/simplabs/ember-simple-auth)\n\n__[Ember Simple Auth's API docs are available here](http://ember-simple-auth.com/ember-simple-auth-api-docs.html)__\n\n#  Ember Simple Auth\n\n![Logo](http://ember-simple-auth.com/images/logo.png)\n\nEmber Simple Auth is a __lightweight library for implementing authentication/\nauthorization with [Ember.js](http://emberjs.com) applications__. It has\nminimal requirements with respect to application structure, routes etc. With\nits pluggable strategies it can support all kinds of authentication and\nauthorization mechanisms.\n\n## What does it do?\n\n* it __manages a client side session__ and synchronizes that across tabs/\n  windows\n* it __authenticates the session__ against the application's own server, external\n  providers like Facebook etc.\n* it __authorizes requests__ to backend servers\n* it is easily customizable and extensible\n\n## How do I use it?\n\n### The Session\n\nEmber Simple Auth is built around the fundamental idea that __users are always\nusing the application in the context of a (client side) session. This session\ncan either be authenticated or not.__ Ember Simple Auth creates that session,\nprovides functionality to authenticate and invalidate it and also has a set of\nmixins that provide default implementations for common scenarios like\nredirecting users to the login if they access a restricted page etc.\n\nThe session can be accessed via the `session` service. That service defines\n(besides other things) the `isAuthenticated` property returns whether the session is authenticated or not.\nIn order to e.g. show a login or logout button depending on the current authentication state,\nsimple inject the service in the respective component or controller\n\n```js\nimport Ember from 'ember';\n\nexport default Ember.Component.extend({\n  session: Ember.inject.service('session')\n});\n```\n\nand add an `if` in the respective template:\n\n```html\n{{#if session.isAuthenticated}}\n  <a {{ action 'invalidateSession' }}>Logout</a>\n{{else}}\n  {{#link-to 'login'}}Login{{/link-to}}\n{{/if}}\n```\n\nFor authenticating and invalidating the session, the service\ndefines the `authenticate` and `invalidate` methods. The `authenticate` method\nexpects the authenticator to use as first argument and additional arguments depending\non the authenticator used, e.g.:\n\n```js\nimport Ember from 'ember';\n\nexport default Ember.Component.extend({\n  session: Ember.inject.service('session'),\n\n  actions: {\n    authenticate() {\n      let data = this.getProperties('identification', 'password');\n      this.get('session').authenticate('authenticator:some', data).catch((reason) => {\n        this.set('errorMessage', reason.error);\n      });\n    }\n  }\n});\n```\n\n`invalidate` doesn't expect any arguments:\n\n```js\nimport Ember from 'ember';\n\nexport default Ember.Component.extend({\n  session: Ember.inject.service('session'),\n\n  actions: {\n    invalidate() {\n      this.get('session').invalidate();\n    }\n  }\n});\n```\n\nThe session service also provides the `sessionAuthenticated` and `sessionInvalidated` events that\nare triggered whenever the session is successfully authenticated or invalidated (which not only happens\nwhen the user submit the login form or clicks the login button but also when the session is authenticated\nor invalidated in another tab or window which will then be synchronized to other tabs via the session store).\nTo have these events handled in the default way automatically, simply mixin the `ApplicationRouteMixin`\nin the application route:\n\n```js\n// app/routes/application.js\nimport Ember from 'ember';\nimport ApplicationRouteMixin from 'ember-simple-auth/mixins/application-route-mixin';\n\nexport default Ember.Route.extend(ApplicationRouteMixin);\n```\n\nTo make a route in the application require the session to be authenticated,\nthere is another mixin that Ember Simple Auth provides and that is included in\nthe respective route (see the\n[API docs for `AuthenticatedRouteMixin`](http://ember-simple-auth.com/ember-simple-auth-api-docs.html#SimpleAuth-AuthenticatedRouteMixin)):\n\n```js\n// app/routes/protected.js\nimport AuthenticatedRouteMixin from 'ember-simple-auth/mixins/authenticated-route-mixin';\n\nexport default Ember.Route.extend(AuthenticatedRouteMixin);\n```\n\nThis will make the route transition to `/login` (or a different URL if\nconfigured) when the session is not authenticated in the `beforeModel` method.\n\nTo prevent a route from being accessed when the session is authenticated (which\nmakes sense for the `login` route for example), use the\n[`UnauthenticatedRouteMixin`](http://ember-simple-auth.com/ember-simple-auth-api-docs.html#SimpleAuth-UnauthenticatedRouteMixin)).\n\n### Authenticators\n\n__Authenticators implement the concrete steps necessary to authenticate the\nsession.__ An application can have several authenticators for different kinds\nof authentication mechanisms (e.g. the application's own backend server,\nexternal authentication providers like Facebook etc.) while the session is only\nauthenticated with one authenticator at a time (see the\n[API docs for `Session#authenticate`](http://ember-simple-auth.com/ember-simple-auth-api-docs.html#SimpleAuth-Session-authenticate)).\nThe authenticator to use is chosen when authentication is triggered:\n\n```js\nthis.get('session').authenticate('authenticator:some', {});\n```\n\nEmber Simple Auth comes with 3 authenticators:\n\n* `OAuth2PasswordGrantAuthenticator`: an OAuth 2.0 authenticator that implements the _\"Resource Owner Password Credentials Grant Type\"_\n* `DeviseAuthenticator`: an authenticator compatible with the popular Ruby on Rails authentication plugin [devise](https://github.com/plataformatec/devise)\n* `ToriiAuthenticator`: an authenticator that wraps the [torii library](https://github.com/Vestorly/torii)\n\nTo use one of these authenticator in an application, simply extend it:\n\n```js\n// app/authenticators/oauth2.js\nimport OAuth2PasswordGrantAuthenticator from 'ember-simple-auth/authenticators/oauth2-password-grant';\n\nexport default OAuth2PasswordGrantAuthenticator.extend();\n```\n\nThis authenticator can then be used to authenticate the session as follows:\n\n```js\nthis.get('session').authenticate('authenticator:some', data)\n```\n\n#### Implementing a custom Authenticator\n\nBesides the option to use one of the predefined authenticators, it is easy to implement custom authenticators as well. All\nthat is necessary is to extend the base authenticator and implement three\nmethods (see the\n[API docs for `Authenticators.Base`](http://ember-simple-auth.com/ember-simple-auth-api-docs.html#SimpleAuth-Authenticators-Base)),\ne.g.:\n\n```js\n// app/authenticators/custom.js\nimport BaseAuthenticator from 'ember-simple-auth/authenticators/base';\n\nexport default Base.extend({\n  restore: function(data) {\n    …\n  },\n  authenticate: function(options) {\n    …\n  },\n  invalidate: function(data) {\n    …\n  }\n});\n```\n\nThis authenticator can then be used to authenticate the session as follows:\n\n```js\nthis.get('session').authenticate('authenticator:custom', {});\n```\n\n### Authorizers\n\nEmber Simple Auth defines authorizers to use data obtained on session authentication\nto e.g. authorize backend requests. While the authenticator acquires some sort of secret information from an\nauthentication provider when it authenticates the session, __the authorizer\nuses that secret information acquired by the authenticator to authorize\nsubsequent requests, thus the authenticator and authorizer have to fit\ntogether__.\n\nEmber Simple Auth comes with 2 authorizers:\n\n* `OAuth2BearerAuthorizer`: an OAuth 2.0 authorizer that uses Bearer tokens\n* `DeviseAuthorizer`: an authorizer compatible with the popular Ruby on Rails authentication plugin [devise](https://github.com/plataformatec/devise)\n\nUnlike in previous versions of Ember Simple Auth, authorization will not happen automatically for\nall requests the application makes anymore but has to be done explicitly via the service. Therefor the service\ndefines the `authorize` method that calls a specified callback with the authorization data if the session is\nauthenticated:\n\n```js\nthis.get('session').authorize('authorizer:some', (authorizationData) => {\n  // do sth. with the authorizationData\n});\n```\n\nWhen using Ember Data this would be added to the application adapter to inject an `Authorization` into requests so\nthat the API can identify the user issuing the request. As that is a very common case though there is the\n`DataAdapterMixin` to simplify this:\n\n```js\nimport DS from 'ember-data';\nimport DataAdapterMixin from 'ember-simple-auth/mixins/data-adapter-mixin';\n\nexport default DS.JSONAPIAdapter.extend(DataAdapterMixin, {\n  authorizer: 'authorizer:application'\n});\n```\n\n#### Implementing a custom Authorizer\n\nBesides the option to use one of the predefined authorizers from the extension\nlibraries, it is easy to implement custom authorizers as well. All you have to\ndo is to extend the base authorizer and implement one method (see the\n[API docs for `Authorizers.Base`](http://ember-simple-auth.com/ember-simple-auth-api-docs.html#SimpleAuth-Authorizers-Base)).\n\n```js\n// app/authorizers/custom.js\nimport BaseAuthorizer from 'ember-simple-auth/authorizers/base';\n\nexport default BaseAuthorizer.extend({\n  authorize(block) {\n    …\n  }\n});\n```\n\n### Stores\n\nEmber Simple Auth __persists the session state so it survives page reloads__.\nThere is only one store per application that can be configured in the application's\nenvironment object:\n\n```js\n//config/environment.js\nENV['simple-auth'] = {\n  store: 'session-store:local-storage'\n}\n```\n\n#### Store Types\n\nEmber Simple Auth comes with 2 bundled stores:\n\n##### `localStorage` Store\n\nThe `localStorage` store (see the\n[API docs for `Stores.LocalStorage`](http://ember-simple-auth.com/ember-simple-auth-api-docs.html#SimpleAuth-Stores-LocalStorage))\nstores its data in the browser's `localStorage`; __this is the default store__.\n\n##### Ephemeral Store\n\nThe ephemeral store (see the\n[API docs for `Stores.Ephemeral`](http://ember-simple-auth.com/ember-simple-auth-api-docs.html#SimpleAuth-Stores-Ephemeral))\nstores its data in memory and thus __is not actually persistent__. This store\nis mainly useful for testing. Also the ephemeral store cannot keep multiple\ntabs or windows in sync as tabs/windows cannot share memory.\n\nA cookie based store is available in the extension library\n[__simple-auth-cookie-store__](packages/ember-simple-auth-cookie-store).\n\n#### Implementing a custom Store\n\nImplementing a custom store is as easy as implementing custom authenticators or\nauthorizers. All you have to do is to extend the base store and implement three\nmethods (see the\n[API docs for `Stores.Base`](http://ember-simple-auth.com/ember-simple-auth-api-docs.html#SimpleAuth-Stores-Base)).\n\n## Testing\n\nEmber Simple Auth comes with a set up test helpers that help testing\nauthentication:\n\n* `currentSession()`: provides access to the current session.\n* `authenticateSession(sessionData)`: authenticates the session; the optional\n  `sessionData` argument can be used to mock an authenticator response - e.g.\n  a token.\n* `invalidateSession()`: invalidates the session.\n\n## Dummy app\n\nEmber Simple Auth comes with a dummy app that shows how to use it. To run it,\nclone the repository and start the Ember server:\n\n```bash\ngit clone https://github.com/simplabs/ember-simple-auth.git\ncd ember-simple-auth\nnpm install\nbower install\nember serve\n```\n\nOpen [http://localhost:4200](http://localhost:4200) to access the app.\n\n## Installation\n\nEmber Simple Auth is distributed as an Ember CLI Addon so installation is as\neasy as:\n\n```bash\nember install ember-simple-auth\n```\n\n## Configuration\n\nEmber Simple Auth is configured via the `'ember-simple-auth'` section in the\napplication's `config/environment.js` file. See the\n[API docs](http://ember-simple-auth.com/ember-simple-auth-api-docs.html#SimpleAuth-Configuration))\nfor the available settings.\n\n## License\n\nEmber Simple Auth is developed by and &copy;\n[simplabs GmbH/Marco Otte-Witte](http://simplabs.com) and contributors. It is\nreleased under the\n[MIT License](https://github.com/simplabs/ember-simple-auth/blob/master/LICENSE).\n\nEmber Simple Auth is not an official part of [Ember.js](http://emberjs.com) and\nis not maintained by the Ember.js Core Team.\n",
+  "readmeFilename": "README.md",
+  "_id": "ember-simple-auth@1.0.0",
+  "_shasum": "e45a7357002f919716d6af59af3845ce29288dcd",
+  "_from": "git://github.com/simplabs/ember-simple-auth.git#49b1b3fe7ee62c827a98e012a5a3966e77c64352",
+  "_resolved": "git://github.com/simplabs/ember-simple-auth.git#49b1b3fe7ee62c827a98e012a5a3966e77c64352"
+}
